@@ -1,0 +1,31 @@
+{
+  "api_endpoint": "https://api.github.com/copilot",
+  "model": "copilot-codex",
+  "max_tokens": 2000,
+  "temperature": 0.3,
+  "top_p": 0.95,
+  "stop_sequences": ["```", "END"],
+  "context_window": 8000,
+  "languages": {
+    "c": {
+      "file_extension": ".c",
+      "syntax_hints": ["#include", "DEFINE_"],
+      "udf_specific": true
+    },
+    "python": {
+      "file_extension": ".py",
+      "syntax_hints": ["import", "def ", "class "],
+      "pyfluent_specific": true
+    },
+    "scheme": {
+      "file_extension": ".scm",
+      "syntax_hints": ["(define", "(lambda"],
+      "tui_specific": true
+    }
+  },
+  "prompts": {
+    "udf_generation": "Generate an ANSYS Fluent UDF in C that {description}. Include all necessary headers and macros.",
+    "python_script": "Create a PyFluent script that {description}. Use modern pyfluent API.",
+    "optimization": "Optimize this Fluent code for performance: {code}"
+  }
+}

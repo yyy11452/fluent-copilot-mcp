@@ -1,0 +1,26 @@
+{
+  "fluent_path": "C:/Program Files/ANSYS Inc/v241/fluent/ntbin/win64/fluent.exe",
+  "version": "2024R1",
+  "precision": "dp",
+  "dimension": "3d",
+  "solver_args": [
+    "-g",
+    "-hidden"
+  ],
+  "python_api": {
+    "enabled": true,
+    "port": 50000,
+    "timeout": 30
+  },
+  "udf_compiler": {
+    "compiler": "msvc",
+    "cpp_args": [],
+    "include_paths": []
+  },
+  "workspace": {
+    "case_files": "./cases",
+    "data_files": "./data",
+    "udf_files": "./udfs",
+    "scripts": "./scripts"
+  }
+}

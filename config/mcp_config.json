@@ -1,0 +1,45 @@
+{
+  "server": {
+    "name": "fluent-github-mcp",
+    "version": "1.0.0",
+    "port": 3000,
+    "host": "localhost"
+  },
+  "github": {
+    "api_url": "https://api.github.com",
+    "api_version": "2022-11-28",
+    "timeout": 30000,
+    "retry_attempts": 3
+  },
+  "mcp": {
+    "protocol_version": "1.0.0",
+    "transport": "stdio",
+    "capabilities": {
+      "resources": true,
+      "tools": true,
+      "prompts": true
+    }
+  },
+  "tools": [
+    {
+      "name": "create_repository",
+      "description": "Create a new GitHub repository"
+    },
+    {
+      "name": "push_files",
+      "description": "Push files to GitHub repository"
+    },
+    {
+      "name": "create_pull_request",
+      "description": "Create a pull request"
+    },
+    {
+      "name": "create_issue",
+      "description": "Create an issue"
+    }
+  ],
+  "logging": {
+    "level": "info",
+    "file": "logs/mcp_server.log"
+  }
+}
