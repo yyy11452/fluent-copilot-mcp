@@ -85,7 +85,7 @@ class DeploymentManager:
         branch: str = "main"
     ) -> bool:
         """
-        推送项目到 GitHub
+        推送项目到 GitHub（修复的逻辑）
         
         Args:
             repo_name: 仓库名称
@@ -98,29 +98,79 @@ class DeploymentManager:
         console.print(f"\n📤 推送到 GitHub: {repo_name}/{branch}", style="bold blue")
         
         try:
-            # Git 操作
-            commands = [
-                ["git", "init"],
-                ["git", "add", "."],
-                ["git", "commit", "-m", message],
-                ["git", "branch", "-M", branch],
-                ["git", "remote", "add", "origin", f"https://github.com/{self.github_owner}/{repo_name}.git"],
-                ["git", "push", "-u", "origin", branch]
+            # 检查是否已初始化 git
+            git_dir = Path(".git")
+            if git_dir.exists():
+                console.print("⚠️  Git 仓库已初始化，跳过 git init", style="yellow")
+            else:
+                # 初始化 git
+                result = subprocess.run(["git", "init"], capture_output=True, text=True)
+                if result.returncode != 0:
+                    console.print(f"❌ Git 初始化失败: {result.stderr}", style="bold red")
+                    return False
+                console.print("✅ Git 仓库已初始化", style="green")
+            
+            # 检查是否已配置远程仓库
+            result = subprocess.run(
+                ["git", "remote", "get-url", "origin"],
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode != 0:
+                # 未配置远程，添加远程
+                remote_url = f"https://github.com/{self.github_owner}/{repo_name}.git"
+                result = subprocess.run(
+                    ["git", "remote", "add", "origin", remote_url],
+                    capture_output=True,
+                    text=True
+                )
+                if result.returncode != 0:
+                    console.print(f"❌ 添加远程失败: {result.stderr}", style="bold red")
+                    return False
+                console.print(f"✅ 远程仓库已添加: {remote_url}", style="green")
+            else:
+                console.print(f"✅ 远程仓库已配置: {result.stdout.strip()}", style="green")
+            
+            # 执行标准的 git 操作
+            git_commands = [
+                (["git", "add", "."], "添加文件"),
+                (["git", "commit", "-m", message], "提交代码"),
+                (["git", "branch", "-M", branch], "重命名分支"),
             ]
             
             with Progress() as progress:
-                task = progress.add_task("[cyan]推送文件...", total=len(commands))
+                task = progress.add_task("[cyan]执行 Git 操作...", total=len(git_commands))
                 
-                for cmd in commands:
+                for cmd, description in git_commands:
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     
-                    if result.returncode != 0 and "already exists" not in result.stderr:
-                        console.print(f"⚠️  命令失败: {' '.join(cmd)}", style="yellow")
-                        console.print(f"   {result.stderr}", style="dim")
+                    if result.returncode != 0:
+                        # 某些错误可以忽略（如文件已提交）
+                        if "nothing to commit" not in result.stderr and "fatal" not in result.stderr:
+                            console.print(f"⚠️  {description}: {result.stderr.strip()}", style="yellow")
+                        elif "fatal" in result.stderr:
+                            console.print(f"❌ {description}失败: {result.stderr}", style="bold red")
+                            return False
+                    else:
+                        console.print(f"✅ {description}", style="green")
                     
                     progress.update(task, advance=1)
             
+            # 推送到远程
+            console.print(f"\n🚀 推送到远程 {branch} 分支...", style="cyan")
+            result = subprocess.run(
+                ["git", "push", "-u", "origin", branch],
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode != 0:
+                console.print(f"❌ 推送失败: {result.stderr}", style="bold red")
+                return False
+            
             console.print(f"✅ 推送成功!", style="bold green")
+            console.print(f"📍 仓库地址: https://github.com/{self.github_owner}/{repo_name}", style="cyan")
             return True
             
         except Exception as e:

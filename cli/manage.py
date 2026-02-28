@@ -17,7 +17,7 @@ from loguru import logger
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from fluent_integration import CopilotBridge, FluentWrapper, UDFGenerator
+from fluent_integration import CodeGeneratorBridge, FluentWrapper, UDFGenerator
 
 console = Console()
 
@@ -39,7 +39,7 @@ def generate_udf(description, type, name, output):
     
     try:
         # 初始化生成器
-        bridge = CopilotBridge()
+        bridge = CodeGeneratorBridge()
         generator = UDFGenerator(bridge)
         
         # 生成 UDF
@@ -73,8 +73,8 @@ def generate_script(description, output):
     console.print(f"\n🐍 生成 Python 脚本", style="bold cyan")
     
     try:
-        # 初始化 Copilot Bridge
-        bridge = CopilotBridge()
+        # 初始化 AI 代码生成桥接
+        bridge = CodeGeneratorBridge()
         
         # 生成脚本
         with console.status("[bold green]正在生成脚本..."):
@@ -136,7 +136,7 @@ def validate_udf(udf_file):
             code = f.read()
         
         # 验证
-        bridge = CopilotBridge()
+        bridge = CodeGeneratorBridge()
         generator = UDFGenerator(bridge)
         
         result = generator.validate_udf(code)
@@ -169,7 +169,7 @@ def generate_examples(output_dir):
     console.print(f"\n📚 生成 UDF 示例", style="bold cyan")
     
     try:
-        bridge = CopilotBridge()
+        bridge = CodeGeneratorBridge()
         generator = UDFGenerator(bridge)
         
         with console.status("[bold green]正在生成示例..."):

@@ -1,5 +1,8 @@
 """
-Copilot Bridge - 连接 GitHub Copilot 和 ANSYS Fluent
+Code Generator Bridge - AI 驱动的代码生成桥接（使用 OpenAI API）
+
+注意: 本模块使用 OpenAI API 进行代码生成，而非 GitHub Copilot
+（GitHub Copilot 没有公开的 API，仅可通过 VS Code 扩展使用）
 """
 
 import os
@@ -12,25 +15,35 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-class CopilotBridge:
-    """GitHub Copilot 与 Fluent 的桥接类"""
+class CodeGeneratorBridge:
+    """AI 驱动的代码生成桥接（使用 OpenAI API）"""
     
     def __init__(self, config_path: str = "config/copilot_config.json"):
         """
-        初始化 Copilot Bridge
+        初始化代码生成桥接
         
         Args:
-            config_path: Copilot 配置文件路径
+            config_path: 代码生成配置文件路径
+            
+        说明:
+        - 需要 OPENAI_API_KEY 环境变量（用于 OpenAI API）
+        - GITHUB_TOKEN 仅用于权限验证，不用于代码生成
         """
         self.config = self._load_config(config_path)
+        self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.github_token = os.getenv("GITHUB_TOKEN")
         self.api_endpoint = self.config.get("api_endpoint")
-        self.model = self.config.get("model", "copilot-codex")
+        # 默认模型改为 gpt-4，不再误用 copilot-codex
+        self.model = os.getenv("OPENAI_MODEL", self.config.get("model", "gpt-4"))
         
-        if not self.github_token:
-            raise ValueError("GITHUB_TOKEN not found in environment variables")
+        if not self.openai_api_key:
+            logger.warning(
+                "OPENAI_API_KEY not found. "
+                "代码生成功能将使用模板代码代替。\n"
+                "请设置 OPENAI_API_KEY 环境变量以启用 AI 代码生成。"
+            )
         
-        logger.info("CopilotBridge initialized")
+        logger.info("CodeGeneratorBridge initialized")
     
     def _load_config(self, config_path: str) -> Dict:
         """加载配置文件"""
@@ -65,9 +78,9 @@ class CopilotBridge:
         # 构建完整提示
         full_prompt = self._build_prompt(prompt, language, context)
         
-        # 调用 Copilot API (这里使用 OpenAI 作为替代示例)
+        # 调用 AI API (OpenAI)
         try:
-            code = self._call_copilot_api(full_prompt, max_tokens)
+            code = self._call_code_generation_api(full_prompt, max_tokens)
             logger.success(f"Generated {len(code)} characters of code")
             return code
         except Exception as e:
@@ -101,21 +114,22 @@ class CopilotBridge:
         
         return full_prompt
     
-    def _call_copilot_api(self, prompt: str, max_tokens: int) -> str:
+    def _call_code_generation_api(self, prompt: str, max_tokens: int) -> str:
         """
-        调用 Copilot API
+        调用 AI 代码生成 API（OpenAI）
         
-        注意: GitHub Copilot 主要通过 VS Code 扩展使用
-        这里使用 OpenAI API 作为替代方案
+        注意: 使用 OpenAI API（gpt-4 或 gpt-3.5-turbo）
+        GitHub Copilot 没有公开 API，此处不可用
         """
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        
-        if openai_api_key:
+        if self.openai_api_key:
             # 使用 OpenAI API
             return self._call_openai_api(prompt, max_tokens)
         else:
             # 返回模板代码
-            logger.warning("No API key found, returning template code")
+            logger.warning(
+                "OPENAI_API_KEY 未设置，返回模板代码。\n"
+                "若要启用 AI 代码生成，请设置 OPENAI_API_KEY 环境变量。"
+            )
             return self._generate_template_code(prompt)
     
     def _call_openai_api(self, prompt: str, max_tokens: int) -> str:

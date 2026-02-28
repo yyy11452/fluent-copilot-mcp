@@ -1,5 +1,8 @@
 """
-Copilot Client - GitHub Copilot API 客户端
+GitHub API Client - GitHub 仓库操作客户端
+
+注意: 这个类实际上提供的是 GitHub API 功能，
+而非 GitHub Copilot 功能（GitHub Copilot 没有公开 API）
 """
 
 import os
@@ -11,19 +14,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-class CopilotClient:
-    """GitHub Copilot API 客户端"""
+class GitHubAPIClient:
+    """GitHub API 客户端（用于仓库操作等）"""
     
     def __init__(self, api_key: Optional[str] = None):
         """
-        初始化 Copilot 客户端
+        初始化 GitHub API 客户端
         
         Args:
-            api_key: API 密钥（使用环境变量 GITHUB_TOKEN）
+            api_key: GitHub Personal Access Token （使用环境变量 GITHUB_TOKEN）
         """
         self.api_key = api_key or os.getenv("GITHUB_TOKEN")
         if not self.api_key:
-            raise ValueError("GitHub token not found")
+            raise ValueError("GitHub token not found in GITHUB_TOKEN environment variable")
         
         self.base_url = "https://api.github.com"
         self.session = requests.Session()
@@ -33,11 +36,11 @@ class CopilotClient:
             "X-GitHub-Api-Version": "2022-11-28"
         })
         
-        logger.info("CopilotClient initialized")
+        logger.info("GitHubAPIClient initialized")
     
-    def check_copilot_access(self) -> bool:
+    def check_github_access(self) -> bool:
         """
-        检查 Copilot 访问权限
+        检查 GitHub API 访问权限
         
         Returns:
             是否有访问权限
@@ -45,37 +48,50 @@ class CopilotClient:
         try:
             response = self.session.get(f"{self.base_url}/user")
             response.raise_for_status()
-            logger.info("Copilot access verified")
+            user_info = response.json()
+            logger.info(f"GitHub access verified. User: {user_info.get('login')}")
             return True
         except Exception as e:
-            logger.error(f"Failed to verify Copilot access: {e}")
+            logger.error(f"Failed to verify GitHub access: {e}")
             return False
     
-    def get_completions(
-        self,
-        prompt: str,
-        language: str = "python",
-        max_tokens: int = 1000
-    ) -> List[str]:
+    def get_user_info(self) -> Optional[Dict]:
         """
-        获取代码补全建议
+        获取当前登录用户信息
+        
+        Returns:
+            用户信息字典，或 None 表示获取失败
+        """
+        try:
+            response = self.session.get(f"{self.base_url}/user")
+            response.raise_for_status()
+            logger.info("User info retrieved successfully")
+            return response.json()
+        except Exception as e:
+            logger.error(f"Failed to get user info: {e}")
+            return None
+    
+    def list_repositories(self, per_page: int = 30) -> Optional[List[Dict]]:
+        """
+        列出当前用户的仓库
         
         Args:
-            prompt: 提示文本
-            language: 编程语言
-            max_tokens: 最大 token 数
+            per_page: 每页返回的仓库数
             
         Returns:
-            补全建议列表
+            仓库信息列表，或 None 表示获取失败
         """
-        logger.info(f"Getting completions for {language}...")
-        
-        # 注意: GitHub Copilot 没有直接的公共 API
-        # 这里是示例实现，实际需要通过 VS Code 扩展或其他方式
-        
-        # 返回空列表作为占位
-        logger.warning("Copilot API not available, returning empty completions")
-        return []
+        try:
+            response = self.session.get(
+                f"{self.base_url}/user/repos",
+                params={"per_page": per_page, "sort": "updated"}
+            )
+            response.raise_for_status()
+            logger.info(f"Retrieved {len(response.json())} repositories")
+            return response.json()
+        except Exception as e:
+            logger.error(f"Failed to list repositories: {e}")
+            return None
     
     def close(self):
         """关闭客户端"""

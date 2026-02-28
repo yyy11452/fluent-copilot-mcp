@@ -1,5 +1,5 @@
 """
-UDF Generator - 使用 Copilot 生成 ANSYS Fluent UDF
+UDF Generator - 使用 AI (OpenAI) 生成 ANSYS Fluent UDF
 """
 
 import os
@@ -7,7 +7,8 @@ from typing import Dict, Optional, List
 from pathlib import Path
 from loguru import logger
 
-from .copilot_bridge import CopilotBridge
+from .copilot_bridge import CodeGeneratorBridge
+from .exceptions import UDFGenerationError, ValidationError
 
 
 class UDFGenerator:
@@ -37,14 +38,14 @@ class UDFGenerator:
         "turbulent_viscosity": "DEFINE_TURBULENT_VISCOSITY"
     }
     
-    def __init__(self, copilot_bridge: Optional[CopilotBridge] = None):
+    def __init__(self, code_gen_bridge: Optional[CodeGeneratorBridge] = None):
         """
         初始化 UDF Generator
         
         Args:
-            copilot_bridge: CopilotBridge 实例
+            code_gen_bridge: CodeGeneratorBridge 实例
         """
-        self.copilot = copilot_bridge or CopilotBridge()
+        self.code_gen = code_gen_bridge or CodeGeneratorBridge()
         logger.info("UDFGenerator initialized")
     
     def generate_udf(
@@ -71,8 +72,14 @@ class UDFGenerator:
         logger.info(f"Generating UDF: {function_name} ({udf_type})")
         
         if udf_type not in self.UDF_TYPES:
-            logger.error(f"Unknown UDF type: {udf_type}")
-            raise ValueError(f"Unknown UDF type: {udf_type}. Available types: {list(self.UDF_TYPES.keys())}")
+            raise ValidationError(
+                f"Unknown UDF type: {udf_type}",
+                field="udf_type",
+                details={
+                    "available_types": list(self.UDF_TYPES.keys()),
+                    "provided_type": udf_type
+                }
+            )
         
         # 构建提示词
         macro = self.UDF_TYPES[udf_type]
@@ -80,7 +87,7 @@ class UDFGenerator:
         
         # 生成代码
         try:
-            udf_body = self.copilot.generate_code(
+            udf_body = self.code_gen.generate_code(
                 prompt=prompt,
                 language="c",
                 context=context
@@ -94,8 +101,13 @@ class UDFGenerator:
             return full_udf
             
         except Exception as e:
-            logger.error(f"Failed to generate UDF: {e}")
-            raise
+            error = UDFGenerationError(
+                f"Failed to generate UDF: {str(e)}",
+                udf_type=udf_type,
+                description=description
+            )
+            logger.error(str(error))
+            raise error
     
     def _build_udf_prompt(
         self, 
